@@ -3,7 +3,7 @@ from flask import Flask
 from threading import Thread
 import os
 
-# --- Сайт для Render ---
+# --- Сайт для Render (чтобы не засыпал) ---
 app = Flask('')
 
 @app.route('/')
@@ -19,42 +19,48 @@ def keep_alive():
     t.start()
 
 # --- Твой бот ---
-bot = telebot.TeleBot("8695726820:AAE_j0u02fQ9JUi5u3s9rwbv7kxxWztPO2M")
-ADMIN_ID = 8745598065
+# ВСТАВЬ СВОЙ НОВЫЙ ТОКЕН (в кавычках)
+bot = telebot.TeleBot("8695726820:AAGBFeXpdDwMxcrnz18NgG97f5YUBUYeUxo")
 
-# Тут храним забаненных (черный список)
+# Твой ID уже вписан
+ADMIN_ID = 8745598065 
+
+# Черный список для спамеров
 banned_users = set() 
 
 @bot.message_handler(commands=['start'])
 def start(message):
     if message.chat.id == ADMIN_ID:
-        bot.send_message(message.chat.id, "Привет! Я работаю в облаке 24/7.")
+        bot.send_message(message.chat.id, "Привет, создатель! Я работаю в облаке 24/7.")
     else:
         bot.send_message(message.chat.id, "Привет! Напиши сообщение, и я передам его создателю.")
 
-# --- Команда для бана ---
+@bot.message_handler(commands=['help'])
+def help_command(message):
+    if message.chat.id == ADMIN_ID:
+        bot.send_message(message.chat.id, "Твои команды:\n/start - статус\n/ban - забанить (через Reply на сообщение с ID)\n/help - это меню")
+    else:
+        bot.send_message(message.chat.id, "Привет! Просто напиши сюда любое сообщение, и я анонимно передам его Создателю.")
+
 @bot.message_handler(commands=['ban'])
 def ban_user(message):
     if message.chat.id == ADMIN_ID:
         if message.reply_to_message:
             try:
-                # Берем ID из сообщения, на которое ты ответил
                 text = message.reply_to_message.text
                 user_id = int(text.split('ID: ')[1].split('\n')[0])
-                
-                banned_users.add(user_id) # Добавляем в черный список
+                banned_users.add(user_id) 
                 bot.send_message(ADMIN_ID, f"✅ Пользователь {user_id} заблокирован. Теперь он в игноре.")
             except Exception:
                 bot.send_message(ADMIN_ID, "⚠️ Ошибка. Зажми сообщение с 'ID: ...' и напиши /ban.")
         else:
             bot.send_message(ADMIN_ID, "⚠️ Чтобы забанить, зажми сообщение нарушителя, выбери 'Ответить' и напиши /ban.")
 
-# --- Обработка сообщений ---
 @bot.message_handler(func=lambda message: True)
 def handle_messages(message):
-    # Проверяем, не забанен ли этот человек
+    # Проверяем, не забанен ли человек
     if message.chat.id in banned_users:
-        return # Если забанен - просто игнорируем
+        return # Игнорируем забаненных
 
     if message.chat.id == ADMIN_ID:
         if message.reply_to_message:
@@ -66,7 +72,7 @@ def handle_messages(message):
                 pass
     else:
         bot.send_message(ADMIN_ID, f"ID: {message.chat.id}\n\n{message.text}")
-        bot.send_message(message.chat.id, "Отправлено!")
+        bot.send_message(message.chat.id, "✅ Отправлено!")
 
 keep_alive()
 bot.infinity_polling()
